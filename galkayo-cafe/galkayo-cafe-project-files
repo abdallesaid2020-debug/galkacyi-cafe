@@ -1,0 +1,506 @@
+# Galkayo Café — Project Files
+
+## Folder Structure
+
+```
+galkayo-cafe/
+├── index.php
+├── .htaccess
+├── assets/
+│   ├── css/
+│   │   └── style.css
+│   └── images/
+├── includes/
+│   ├── .htaccess
+│   ├── init.php
+│   ├── config.php
+│   ├── data.php
+│   ├── functions.php
+│   ├── header.php
+│   ├── nav.php
+│   ├── footer.php
+│   └── menu-card.php
+├── pages/
+│   ├── menu.php
+│   ├── about.php
+│   ├── contact.php
+│   ├── order.php
+│   ├── food.php
+│   └── 404.php
+└── uploads/
+    └── .htaccess
+```
+
+---
+
+## `.htaccess`
+
+```apache
+RewriteEngine On
+
+# Route supported clean URLs through the front controller.
+RewriteRule ^(menu|about|contact|order|food)/?$ index.php?page=$1 [L,QSA]
+
+# Send unknown URLs through the front controller's 404 page.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php?page=404 [L,QSA]
+```
+
+---
+
+## `index.php`
+
+```php
+<?php
+if (isset($_GET['page'])) {
+    $page = $_GET['page'];
+    $allowedPages = ['menu', 'about', 'contact', 'order', 'food', '404'];
+
+    if (!in_array($page, $allowedPages, true)) {
+        $page = '404';
+    }
+
+    require __DIR__ . '/pages/' . $page . '.php';
+    exit;
+}
+
+require_once __DIR__ . '/includes/init.php';
+
+$pageTitle   = 'Home';
+$currentPage = 'home';
+$featured    = featuredItems($menuItems);
+
+require __DIR__ . '/includes/header.php';
+?>
+
+<section class="hero">
+    <h1><?= greeting() ?>, welcome to <?= SITE_NAME ?></h1>
+    <p>Fresh coffee, Somali tea and tasty snacks every day.</p>
+    <a href="<?= BASE_URL ?>/menu" class="btn">See our menu</a>
+    <a href="<?= BASE_URL ?>/order" class="btn">Order on WhatsApp</a>
+</section>
+
+<section>
+    <h2>Today's Favourites</h2>
+    <div class="grid">
+        <?php foreach ($featured as $item): ?>
+            <?php require __DIR__ . '/includes/menu-card.php'; ?>
+        <?php endforeach; ?>
+    </div>
+</section>
+
+<?php require __DIR__ . '/includes/footer.php'; ?>
+```
+
+---
+
+## `assets/css/style.css`
+
+```css
+:root {
+    --brown: #6b3e26;
+    --light: #f3dcc8;
+    --cream: #fff8f0;
+    --dark: #2b2b2b;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: system-ui, sans-serif;
+    color: var(--dark);
+    background: var(--cream);
+    line-height: 1.6;
+}
+
+.container { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
+
+/* Header and navigation */
+.site-header { background: var(--brown); padding: 15px 0; }
+.site-header .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+.logo { color: #fff; font-size: 1.4rem; font-weight: 700; text-decoration: none; }
+nav a { color: var(--light); text-decoration: none; margin-left: 20px; }
+nav a:hover, nav a.active { color: #fff; border-bottom: 2px solid #fff; }
+
+/* Main content */
+main { padding: 40px 20px; min-height: 65vh; }
+h1 { margin-bottom: 15px; }
+h2 { margin-bottom: 15px; }
+section { margin-bottom: 35px; }
+.hero { text-align: center; padding: 30px 0; }
+.btn {
+    display: inline-block; background: var(--brown); color: #fff;
+    padding: 10px 20px; border-radius: 6px; text-decoration: none; margin: 15px 5px 0;
+}
+
+/* Cards */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+.card { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 2px 6px rgba(0,0,0,.08); }
+.card h3 { margin: 8px 0; }
+.price { color: var(--brown); font-weight: 700; margin-top: 10px; }
+.tag { font-size: .75rem; background: var(--light); padding: 2px 10px; border-radius: 20px; }
+
+/* Table and list */
+table { width: 100%; border-collapse: collapse; background: #fff; }
+th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+th { background: var(--brown); color: #fff; }
+tr.today { background: var(--light); font-weight: 700; }
+.list { padding-left: 20px; }
+.list li { margin-bottom: 6px; }
+
+/* Footer */
+.site-footer { background: var(--dark); color: #ccc; text-align: center; padding: 20px 0; }
+```
+
+---
+
+## `includes/.htaccess`
+
+```apache
+Require all denied
+```
+
+---
+
+## `includes/init.php`
+
+```php
+<?php
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/data.php';
+```
+
+---
+
+## `includes/config.php`
+
+```php
+<?php
+date_default_timezone_set('Africa/Mogadishu');
+
+// Find the project's URL automatically from the running page
+$scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
+$scriptDir = preg_replace('#/pages$#', '', $scriptDir);
+define('BASE_URL', rtrim($scriptDir, '/'));
+
+define('SITE_NAME',     'Galkayo Café');
+define('SITE_PHONE',    '+252 90 000 0000');
+define('SITE_EMAIL',    'info@galkayocafe.com');
+define('SITE_ADDRESS',  'Main Road, Galkayo, Somalia');
+define('SITE_WHATSAPP', '252900000000');
+```
+
+---
+
+## `includes/data.php`
+
+```php
+<?php
+$navLinks = [
+    'home'    => ['label' => 'Home',    'url' => '/'],
+    'menu'    => ['label' => 'Menu',    'url' => '/menu'],
+    'about'   => ['label' => 'About',   'url' => '/about'],
+    'contact' => ['label' => 'Contact', 'url' => '/contact'],
+];
+
+$menuItems = [
+    ['name' => 'Somali Tea (Shaah)', 'category' => 'Drinks', 'price' => 0.50, 'description' => 'Spiced tea with cardamom and ginger.',   'featured' => true],
+    ['name' => 'Espresso',           'category' => 'Drinks', 'price' => 1.50, 'description' => 'Strong and fresh single shot.',         'featured' => false],
+    ['name' => 'Cappuccino',         'category' => 'Drinks', 'price' => 2.00, 'description' => 'Espresso with steamed milk foam.',      'featured' => false],
+    ['name' => 'Fresh Mango Juice',  'category' => 'Drinks', 'price' => 1.50, 'description' => 'Made from local mangoes.',              'featured' => true],
+    ['name' => 'Sambuusa (3 pcs)',   'category' => 'Snacks', 'price' => 1.00, 'description' => 'Crispy pastry filled with spiced meat.', 'featured' => true],
+    ['name' => 'Chocolate Cake',     'category' => 'Snacks', 'price' => 2.50, 'description' => 'Soft cake with chocolate cream.',       'featured' => false],
+];
+
+$team = [
+    ['name' => 'Ahmed Ali',     'role' => 'Head Barista'],
+    ['name' => 'Hodan Warsame', 'role' => 'Manager'],
+    ['name' => 'Yusuf Farah',   'role' => 'Chef'],
+    ['name' => 'Amina Hassan',  'role' => 'Cashier'],
+];
+
+$openingHours = [
+    'Saturday'  => '6:00 AM – 10:00 PM',
+    'Sunday'    => '6:00 AM – 10:00 PM',
+    'Monday'    => '6:00 AM – 10:00 PM',
+    'Tuesday'   => '6:00 AM – 10:00 PM',
+    'Wednesday' => '6:00 AM – 10:00 PM',
+    'Thursday'  => '6:00 AM – 11:00 PM',
+    'Friday'    => '2:00 PM – 11:00 PM',
+];
+```
+
+---
+
+## `includes/functions.php`
+
+```php
+<?php
+function e($text)
+{
+    return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
+}
+
+function price($amount)
+{
+    return '$' . number_format($amount, 2);
+}
+
+function greeting()
+{
+    $hour = date('H');
+
+    if ($hour < 12) {
+        return 'Good morning';
+    } elseif ($hour < 17) {
+        return 'Good afternoon';
+    }
+    return 'Good evening';
+}
+
+function featuredItems($items)
+{
+    $featured = [];
+    foreach ($items as $item) {
+        if ($item['featured']) {
+            $featured[] = $item;
+        }
+    }
+    return $featured;
+}
+
+function redirect($path, $code = 302)
+{
+    header('Location: ' . BASE_URL . $path, true, $code);
+    exit;
+}
+```
+
+---
+
+## `includes/header.php`
+
+```php
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= e($pageTitle) ?> | <?= SITE_NAME ?></title>
+    <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/style.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <a href="<?= BASE_URL ?>/" class="logo">☕ <?= SITE_NAME ?></a>
+            <?php require __DIR__ . '/nav.php'; ?>
+        </div>
+    </header>
+
+    <main class="container">
+```
+
+---
+
+## `includes/nav.php`
+
+```php
+<nav>
+    <?php foreach ($navLinks as $key => $link): ?>
+        <a href="<?= BASE_URL . $link['url'] ?>" class="<?= $currentPage == $key ? 'active' : '' ?>">
+            <?= $link['label'] ?>
+        </a>
+    <?php endforeach; ?>
+</nav>
+```
+
+---
+
+## `includes/footer.php`
+
+```php
+    </main>
+
+    <footer class="site-footer">
+        <p><?= SITE_ADDRESS ?> · <?= SITE_PHONE ?></p>
+        <p>&copy; <?= date('Y') ?> <?= SITE_NAME ?>. All rights reserved.</p>
+    </footer>
+</body>
+</html>
+```
+
+---
+
+## `includes/menu-card.php`
+
+```php
+<div class="card">
+    <span class="tag"><?= e($item['category']) ?></span>
+    <h3><?= e($item['name']) ?></h3>
+    <p><?= e($item['description']) ?></p>
+    <p class="price"><?= price($item['price']) ?></p>
+</div>
+```
+
+---
+
+## `pages/menu.php`
+
+```php
+<?php
+require_once __DIR__ . '/../includes/init.php';
+
+$pageTitle   = 'Our Menu';
+$currentPage = 'menu';
+
+require __DIR__ . '/../includes/header.php';
+?>
+
+<h1>Our Menu</h1>
+<p>We have <?= count($menuItems) ?> items. Everything is fresh every day.</p>
+
+<div class="grid">
+    <?php foreach ($menuItems as $item): ?>
+        <?php require __DIR__ . '/../includes/menu-card.php'; ?>
+    <?php endforeach; ?>
+</div>
+
+<?php require __DIR__ . '/../includes/footer.php'; ?>
+```
+
+---
+
+## `pages/about.php`
+
+```php
+<?php
+require_once __DIR__ . '/../includes/init.php';
+
+$pageTitle   = 'About Us';
+$currentPage = 'about';
+
+require __DIR__ . '/../includes/header.php';
+?>
+
+<h1>About Us</h1>
+<p><?= SITE_NAME ?> opened in 2020. We serve fresh coffee and Somali tea in a friendly place.</p>
+
+<h2>Our Team (<?= count($team) ?> people)</h2>
+<ul class="list">
+    <?php foreach ($team as $member): ?>
+        <li><strong><?= e($member['name']) ?></strong> — <?= e($member['role']) ?></li>
+    <?php endforeach; ?>
+</ul>
+
+<?php require __DIR__ . '/../includes/footer.php'; ?>
+```
+
+---
+
+## `pages/contact.php`
+
+```php
+<?php
+require_once __DIR__ . '/../includes/init.php';
+
+$pageTitle   = 'Contact Us';
+$currentPage = 'contact';
+$today       = date('l');
+
+require __DIR__ . '/../includes/header.php';
+?>
+
+<h1>Contact Us</h1>
+
+<section>
+    <p><strong>Address:</strong> <?= SITE_ADDRESS ?></p>
+    <p><strong>Phone:</strong> <?= SITE_PHONE ?></p>
+    <p><strong>Email:</strong> <?= SITE_EMAIL ?></p>
+    <a href="<?= BASE_URL ?>/order" class="btn">Order on WhatsApp</a>
+</section>
+
+<section>
+    <h2>Opening Hours</h2>
+    <table>
+        <thead>
+            <tr><th>Day</th><th>Hours</th></tr>
+        </thead>
+        <tbody>
+            <?php foreach ($openingHours as $day => $hours): ?>
+                <tr class="<?= $day == $today ? 'today' : '' ?>">
+                    <td><?= $day ?><?= $day == $today ? ' (Today)' : '' ?></td>
+                    <td><?= $hours ?></td>
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+</section>
+
+<?php require __DIR__ . '/../includes/footer.php'; ?>
+```
+
+---
+
+## `pages/order.php`
+
+```php
+<?php
+require_once __DIR__ . '/../includes/init.php';
+
+$message = 'Hello Galkayo Café, I would like to place an order.';
+
+header('Location: https://wa.me/' . SITE_WHATSAPP . '?text=' . urlencode($message));
+exit;
+```
+
+---
+
+## `pages/food.php`
+
+```php
+<?php
+require_once __DIR__ . '/../includes/init.php';
+
+redirect('/menu', 301);
+```
+
+---
+
+## `pages/404.php`
+
+```php
+<?php
+require_once __DIR__ . '/../includes/init.php';
+
+http_response_code(404);
+
+$pageTitle   = 'Page Not Found';
+$currentPage = '';
+
+require __DIR__ . '/../includes/header.php';
+?>
+
+<section class="hero">
+    <h1>404 — Page Not Found</h1>
+    <p>Sorry, this page does not exist.</p>
+    <a href="<?= BASE_URL ?>/" class="btn">Back to Home</a>
+</section>
+
+<?php require __DIR__ . '/../includes/footer.php'; ?>
+```
+
+---
+
+## `uploads/.htaccess`
+
+```apache
+# Never run PHP files in this folder
+<FilesMatch "\.(php|phtml|phar)$">
+    Require all denied
+</FilesMatch>
+
+# Do not show a list of files
+Options -Indexes
+```
